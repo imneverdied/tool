@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>二維碼編碼/解碼器 (RWD)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- 響應式設計 viewport 設定 -->
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+            line-height: 1.6; /* 增加行高，提升可讀性 */
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #0056b3;
+        }
+
+        #encodeSection, #decodeSection, #result {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+            max-width: 960px; /* 在大螢幕上限制最大寬度 */
+            margin-left: auto;  /* 水平居中 */
+            margin-right: auto; /* 水平居中 */
+        }
+
+        #encodeSection h2, #decodeSection h2, #result h2 {
+            margin-top: 0;
+            color: #007bff;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        textarea {
+            width: calc(100% - 12px);
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: monospace;
+            min-height: 100px; /* 小螢幕上增加最小高度，方便輸入 */
+        }
+
+        button {
+            padding: 12px 20px; /* 稍微增加按鈕內邊距 */
+            border: none;
+            border-radius: 5px;
+            color: white;
+            background-color: #007bff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-size: 1em; /* 使用 em 單位，相對父元素字體大小 */
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button#stopButton {
+            background-color: #dc3545;
+        }
+
+        button#stopButton:hover {
+            background-color: #c82333;
+        }
+
+        #previewCanvas, #qrcodeCanvas canvas {
+            border: 1px solid #999;
+            border-radius: 4px;
+            background-color: #eee;
+            display: block;
+            margin: 0 auto 10px auto;
+        }
+
+        #qrcodeCanvas canvas {
+            margin-bottom: 0;
+        }
+
+        #previewCanvas {
+            width: 100%; /* 寬度佔滿容器 */
+            max-width: 320px; /* 最大寬度限制 (可根據需要調整) */
+            height: auto;     /* 高度設為 auto，讓 aspect-ratio 控制高度 */
+            aspect-ratio: 1 / 1; /* 強制維持 1:1 正方形比例 */
+        }
+
+        #qrcodeCanvas {
+            width: 100%; /* 在容器中佔滿寬度 */
+            max-width: 256px; /* 最大寬度限制 */
+            height: auto;     /* 高度自動，保持比例 */
+            margin: 10px auto;
+        }
+
+        #qrcodeCanvas div {
+            display: inline-block;
+        }
+
+        #result {
+            text-align: center;
+        }
+
+        /* Media Queries for Responsive Design */
+
+        /* 小螢幕 (手機等，最大寬度 768px) */
+        @media screen and (max-width: 768px) {
+            body {
+                margin: 10px; /* 縮小整體外邊距 */
+                font-size: 0.9em; /* 略微縮小字體大小 */
+            }
+
+            h1 {
+                font-size: 2em; /* 小螢幕上標題字體大小 */
+            }
+
+            h2 {
+                font-size: 1.5em; /* 小螢幕上小標題字體大小 */
+            }
+
+            #encodeSection, #decodeSection, #result {
+                padding: 15px; /* 縮小區塊內邊距 */
+                margin-bottom: 15px; /* 縮小區塊底部外邊距 */
+                border-radius: 6px; /* 稍微縮小圓角 */
+            }
+
+            textarea {
+                min-height: 120px; /* 小螢幕上增加 textarea 最小高度 */
+                font-size: 0.9em; /* 縮小 textarea 內字體大小 */
+            }
+
+            button {
+                padding: 10px 15px; /* 縮小按鈕內邊距 */
+                font-size: 0.9em; /* 縮小按鈕字體大小 */
+            }
+
+            #previewCanvas, #qrcodeCanvas canvas {
+                border-width: 1px; /* 縮小邊框寬度 */
+                border-radius: 3px; /* 稍微縮小圓角 */
+                margin-bottom: 8px; /* 縮小底部外邊距 */
+            }
+
+            #previewCanvas {
+                max-width: 100%; /* 手機螢幕上預覽區塊最大寬度為 100% */
+                height: auto;     /* 高度自動調整，aspect-ratio 仍然生效 */
+                aspect-ratio: 1 / 1; /* 再次確保小螢幕上也是正方形 */
+            }
+
+            #qrcodeCanvas {
+                max-width: 200px; /* 手機螢幕上生成二維碼區塊最大寬度 */
+                height: auto;     /* 高度自動調整 */
+                margin: 8px auto; /* 縮小外邊距 */
+            }
+        }
+
+        /* 平板螢幕 (最小寬度 769px，最大寬度 992px) - 可選，如果需要更精細的平板樣式 */
+        @media screen and (min-width: 769px) and (max-width: 992px) {
+            body {
+                font-size: 1em; /* 平板螢幕上字體大小 */
+            }
+            /* 你可以在這裡針對平板尺寸做更細微的調整，例如調整區塊間距、字體大小等 */
+        }
+
+        /* 大螢幕 (桌機等，最小寬度 993px) - 可選，如果需要針對大螢幕優化 */
+        @media screen and (min-width: 993px) {
+            body {
+                font-size: 1.1em; /* 大螢幕上略微放大字體大小 */
+            }
+            /* 你可以在這裡針對大螢幕尺寸做優化，例如調整區塊寬度、排版方式等 */
+        }
+    </style>
+</head>
+<body>
+    <h1>二維碼編碼/解碼器 (RWD)</h1>
+
+    <div id="encodeSection">
+        <h2>二維碼編碼 (生成)</h2>
+        <label for="encodeText">輸入文字生成二維碼:</label><br>
+        <textarea id="encodeText" rows="4" cols="30">在這裡輸入文字</textarea><br>
+        <button id="generateButton">生成二維碼</button>
+        <div id="qrcodeCanvas"></div> <canvas id="qrcodeCanvasElement" style="display:none;"></canvas>  </div>
+
+    <div id="decodeSection">
+        <h2>二維碼解碼 (掃描)</h2>
+        <video id="previewVideo" width="320" height="240" style="display:none;"></video>
+        <canvas id="previewCanvas" width="320" height="240"></canvas><br>
+        <button id="startButton">開始掃描</button>
+        <button id="stopButton" style="display:none;">停止掃描</button>
+    </div>
+
+    <div id="result">
+        <h2>解碼結果</h2>
+        <label for="qrcodeData">二維碼資料:</label>
+        <textarea id="qrcodeData" rows="4" cols="30" readonly></textarea>
+    </div>
+
+    <!-- 引入 jsQR 庫 (CDN 連結) -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <!-- 引入 qrcodejs 庫 (CDN 連結) -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- 編碼 (生成) 部分 ---
+            var generateButton = document.getElementById('generateButton');
+            var encodeTextarea = document.getElementById('encodeText');
+            var qrcodeCanvasDiv = document.getElementById('qrcodeCanvas');
+            var qrcodeCanvasElement = document.getElementById('qrcodeCanvasElement'); // Hidden canvas for qrcodejs
+
+            generateButton.addEventListener('click', function () {
+                var textToEncode = encodeTextarea.value;
+                qrcodeCanvasDiv.innerHTML = ""; // 清空之前的 QR Code
+                var qrcode = new QRCode(qrcodeCanvasDiv, {  // 使用 div 作為容器
+                    text: textToEncode,
+                    width: 256,
+                    height: 256,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
+                });
+            });
+
+            // --- 解碼 (掃描) 部分 ---
+            var video = document.getElementById('previewVideo');
+            var canvas = document.getElementById('previewCanvas');
+            var canvasContext = canvas.getContext('2d');
+            var resultTextArea = document.getElementById('qrcodeData');
+            var startButton = document.getElementById('startButton');
+            var stopButton = document.getElementById('stopButton');
+
+            var scanning = false;
+            var stream = null;
+
+            startButton.addEventListener('click', function () {
+                if (!scanning) {
+                    startScanning();
+                }
+            });
+
+            stopButton.addEventListener('click', function () {
+                if (scanning) {
+                    stopScanning();
+                }
+            });
+
+            function startScanning() {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                    .then(function(videoStream) {
+                        stream = videoStream;
+                        video.srcObject = stream;
+                        video.setAttribute('playsinline', 'true');
+                        video.play();
+                        scanning = true;
+                        startButton.style.display = 'none';
+                        stopButton.style.display = 'inline-block';
+                        resultTextArea.value = "";
+                        scanFrame();
+                        console.log("掃描開始");
+                    })
+                    .catch(function(err) {
+                        console.error("無法存取相機:", err);
+                        alert("無法存取相機，請檢查權限設定。錯誤訊息: " + err.message);
+                    });
+            }
+
+            function stopScanning() {
+                scanning = false;
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    video.srcObject = null;
+                    stream = null;
+                }
+                startButton.style.display = 'inline-block';
+                stopButton.style.display = 'none';
+                console.log("掃描停止");
+            }
+
+            function scanFrame() {
+                if (!scanning) return;
+
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    canvasContext.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    var imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
+                    var code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: "dontInvert",
+                    });
+
+                    if (code) {
+                        console.log("二維碼讀取成功:", code.data);
+                        resultTextArea.value = code.data;
+                        stopScanning();
+                    } else {
+                        // console.log("未偵測到二維碼");
+                    }
+                }
+                requestAnimationFrame(scanFrame);
+            }
+        });
+    </script>
+</body>
+</html>

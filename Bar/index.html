@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>一維條碼編碼/解碼器 (RWD)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #0056b3;
+        }
+
+        #encodeSection, #decodeSection, #result {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+            max-width: 960px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #encodeSection h2, #decodeSection h2, #result h2 {
+            margin-top: 0;
+            color: #007bff;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        textarea {
+            width: calc(100% - 12px);
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: monospace;
+            min-height: 100px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            background-color: #007bff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-size: 1em;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button#stopButton {
+            background-color: #dc3545;
+        }
+
+        button#stopButton:hover {
+            background-color: #c82333;
+        }
+
+        #interactive.viewport {
+            border: 1px solid #999;
+            border-radius: 4px;
+            background-color: #eee;
+            display: block;
+            margin: 0 auto 10px auto;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            max-width: 320px;
+            height: auto;
+            aspect-ratio: 4/3;
+        }
+
+        #interactive.viewport video, #interactive.viewport canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #barcodeCanvas { /* 用於顯示生成的條碼 */
+            margin-top: 10px;
+            text-align: center; /* 條碼圖片居中 */
+        }
+
+        #barcodeCanvas svg { /* jsbarcode 生成的是 SVG 元素 */
+            display: block;     /* 讓 SVG 佔據整個容器寬度 */
+            margin: 0 auto;    /* 水平居中 */
+            max-width: 100%;   /* 最大寬度 */
+            height: auto;      /* 高度自動 */
+        }
+
+
+        #result {
+            text-align: center;
+        }
+
+        /* Media Queries for Responsive Design */
+
+        /* 小螢幕 (手機等，最大寬度 768px) */
+        @media screen and (max-width: 768px) {
+            body {
+                margin: 10px;
+                font-size: 0.9em;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            h2 {
+                font-size: 1.5em;
+            }
+
+            #encodeSection, #decodeSection, #result {
+                padding: 15px;
+                margin-bottom: 15px;
+                border-radius: 6px;
+            }
+
+            textarea {
+                min-height: 120px;
+                font-size: 0.9em;
+            }
+
+            button {
+                padding: 10px 15px;
+                font-size: 0.9em;
+            }
+
+            #interactive.viewport {
+                border-width: 1px;
+                border-radius: 3px;
+                margin-bottom: 8px;
+                max-width: 100%;
+                aspect-ratio: 4/3;
+            }
+
+            #barcodeCanvas {
+                margin-top: 8px; /* 縮小間距 */
+            }
+        }
+
+        /* 平板螢幕 (最小寬度 769px，最大寬度 992px) */
+        @media screen and (min-width: 769px) and (max-width: 992px) {
+            body {
+                font-size: 1em;
+            }
+        }
+
+        /* 大螢幕 (桌機等，最小寬度 993px) */
+        @media screen and (min-width: 993px) {
+            body {
+                font-size: 1.1em;
+            }
+            #interactive.viewport {
+                max-width: 480px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>一維條碼編碼/解碼器 (RWD)</h1>
+
+    <div id="encodeSection">
+        <h2>一維條碼編碼 (產生)</h2>
+        <label for="encodeText">輸入文字產生一維條碼 (Code 128):</label><br>
+        <textarea id="encodeText" rows="4" cols="30">在這裡輸入文字</textarea><br>
+        <button id="generateButton">產生條碼</button>
+        <div id="barcodeCanvas"></div>  </div>
+
+    <div id="decodeSection">
+        <h2>一維條碼解碼 (掃描)</h2>
+        <div id="interactive" class="viewport"></div>
+        <button id="startButton">開始掃描</button>
+        <button id="stopButton" style="display:none;">停止掃描</button>
+    </div>
+
+    <div id="result">
+        <h2>解碼結果</h2>
+        <label for="barcodeData">條碼資料:</label>
+        <textarea id="barcodeData" rows="4" cols="30" readonly></textarea>
+    </div>
+
+    <!-- 引入 QuaggaJS 庫 (CDN 連結) -->
+    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+    <!-- 引入 jsbarcode 庫 (CDN 連結) -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- 編碼 (產生) 部分 ---
+            var generateButton = document.getElementById('generateButton');
+            var encodeTextarea = document.getElementById('encodeText');
+            var barcodeCanvasDiv = document.getElementById('barcodeCanvas');
+
+            generateButton.addEventListener('click', function () {
+                var textToEncode = encodeTextarea.value;
+                barcodeCanvasDiv.innerHTML = ""; // 清空之前的條碼
+                JsBarcode(barcodeCanvasDiv, textToEncode, { // 使用 div 作為容器
+                    format: "CODE128", // 設定條碼類型為 Code 128 (常見的 1D 條碼)
+                    lineColor: "#000",
+                    background: "#fff",
+                    width: 2,      // 線條寬度
+                    height: 80,     // 條碼高度
+                    displayValue: true, // 顯示文字值
+                    textAlign: "center",
+                    fontSize: 18,
+                    margin: 10
+                });
+            });
+
+
+            // --- 解碼 (掃描) 部分 ---
+            var startButton = document.getElementById('startButton');
+            var stopButton = document.getElementById('stopButton');
+            var barcodeDataInput = document.getElementById('barcodeData');
+            var interactive = document.getElementById('interactive');
+
+            var scanning = false; // 追蹤是否正在掃描
+
+            startButton.addEventListener('click', function () {
+                if (!scanning) {
+                    startScanning();
+                }
+            });
+
+            stopButton.addEventListener('click', function () {
+                if (scanning) {
+                    stopScanning();
+                }
+            });
+
+            function startScanning() {
+                Quagga.init({
+                    inputStream: {
+                        name: "Live",
+                        type: "LiveStream",
+                        target: interactive,
+                        constraints: {
+                            width: 640,  // 提高預設寬度
+                            height: 480, // 提高預設高度
+                            facingMode: "environment" // 使用後置鏡頭
+                        }
+                    },
+                    decoder: {
+                        readers: [
+                            "code_128_reader",
+                            "ean_reader",
+                            "ean_8_reader",
+                            "code_39_reader",
+                            "code_39_vin_reader",
+                            "codabar_reader",
+                            "upc_reader",
+                            "upc_e_reader",
+                            "i2of5_reader",
+                            "2of5_reader",
+                            "code_93_reader"
+                        ]
+                    },
+                    locator: {
+                        halfSample: true,
+                        patchSize: "medium",
+                        visual: false
+                    }
+                }, function (err) {
+                    if (err) {
+                        console.error(err);
+                        alert("無法初始化條碼掃描器: " + err.message);
+                        return;
+                    }
+                    Quagga.start();
+                    scanning = true;
+                    startButton.style.display = 'none';
+                    stopButton.style.display = 'inline-block';
+                    barcodeDataInput.value = ""; // 清空上次結果
+                    console.log("掃描開始");
+                });
+            }
+
+            function stopScanning() {
+                Quagga.stop();
+                scanning = false;
+                startButton.style.display = 'inline-block';
+                stopButton.style.display = 'none';
+                console.log("掃描停止");
+            }
+
+            Quagga.onDetected(function (result) {
+                var code = result.codeResult.code;
+                console.log("條碼讀取成功:", code);
+                barcodeDataInput.value = code;
+                stopScanning(); // 讀取到條碼後自動停止掃描 (可選)
+            });
+
+            Quagga.onProcessed(function (result) {
+                var drawingCtx = Quagga.canvas.ctx.overlay;
+                var drawingCanvas = Quagga.canvas.dom.overlay;
+
+                if (result) {
+                    if (result.boxes) {
+                        drawingCtx.clearRect(0, 0, parseInt(drawingCanvas.getAttribute("width")), parseInt(drawingCanvas.getAttribute("height")));
+                        result.boxes.filter(function (box) {
+                            return box !== result.box;
+                        }).forEach(function (box) {
+                            Quagga.ImageDebug.drawPath(box, { x: 0, y: 1 }, drawingCtx, { color: "green", lineWidth: 2 });
+                        });
+                    }
+
+                    if (result.box) {
+                        Quagga.ImageDebug.drawPath(result.box, { x: 0, y: 1 }, drawingCtx, { color: "#00F", lineWidth: 2 });
+                    }
+
+                    if (result.codeResult && result.codeResult.code) {
+                        Quagga.ImageDebug.drawPath(result.line, { x: 'x', y: 'y' }, drawingCtx, { color: 'red', lineWidth: 3 });
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>AES 加密/解密</title>
+    <style>
+      body {
+        font-family: sans-serif; /* 更接近網站的無襯線字體 */
+        background-color: #f8f9fa; /* 淺灰色背景，類似網站 */
+        color: #343a40; /* 深灰色文字，類似網站 */
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
+      .container {
+        width: 80%;
+        max-width: 800px; /* 限制最大寬度 */
+        padding: 30px; /* 增加內邊距 */
+        margin: 20px;
+        background-color: #ffffff; /* 白色容器背景 */
+        border-radius: 10px; /* 圓角邊框 */
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* 輕微陰影 */
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 25px; /* 增加標題下方的間距 */
+        color: #007bff; /* 藍色標題，類似網站主色調 */
+      }
+      label {
+        display: block;
+        margin-bottom: 8px; /* 增加標籤下方的間距 */
+        font-weight: bold; /* 加粗標籤文字 */
+      }
+      input[type='text'],
+      textarea {
+        width: 100%;
+        padding: 12px; /* 增加內邊距 */
+        margin-bottom: 20px; /* 增加輸入框下方的間距 */
+        border: 1px solid #ced4da; /* 淺灰色邊框 */
+        border-radius: 5px; /* 輸入框圓角 */
+        box-sizing: border-box;
+        font-size: 16px; /* 增大字體大小 */
+      }
+      button {
+        padding: 12px 25px; /* 增加按鈕內邊距 */
+        background-color: #007bff; /* 藍色背景，與網站按鈕顏色一致 */
+        color: white;
+        border: none;
+        border-radius: 5px; /* 按鈕圓角 */
+        cursor: pointer;
+        font-size: 16px; /* 增大字體大小 */
+        transition: background-color 0.3s ease; /* 添加過渡效果 */
+        margin-right: 10px; /* 按鈕間距 */
+      }
+      button:hover {
+        background-color: #0056b3; /* 深藍色 hover 效果 */
+      }
+      #output {
+        margin-top: 30px; /* 增加輸出區塊上方的間距 */
+        padding-top: 20px;
+        border-top: 1px solid #dee2e6; /* 上邊框分隔線 */
+      }
+      #output h2 {
+        margin-top: 0; /* 移除輸出標題的上邊距 */
+        margin-bottom: 15px; /* 增加輸出標題下方的間距 */
+        color: #212529; /* 深灰色輸出標題 */
+      }
+    </style>
+    <!-- 引入 crypto-js 庫 (使用 CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>AES 加密/解密</h1>
+
+      <div>
+        <label for="key">金鑰 (Key):</label>
+        <input
+          type="text"
+          id="key"
+          placeholder="請輸入金鑰 (至少 8 個字元，建議 16 字元以上以獲得更高安全性)"
+          value="安全密碼金鑰"
+        />
+      </div>
+
+      <div>
+        <label for="plaintext">明文 (Plaintext):</label>
+        <textarea
+          id="plaintext"
+          rows="4"
+          placeholder="請輸入要加密的明文"
+        ></textarea>
+      </div>
+
+      <div>
+        <button onclick="encryptText()">加密 (Encrypt)</button>
+        <button onclick="decryptText()">解密 (Decrypt)</button>
+      </div>
+
+      <div id="output">
+        <h2>結果 (Result):</h2>
+        <label for="ciphertext">密文 (Ciphertext):</label>
+        <textarea
+          id="ciphertext"
+          rows="4"
+          placeholder="加密後的密文"
+          readonly
+        ></textarea>
+
+        <label for="decryptedText">解密後的明文 (Decrypted Plaintext):</label>
+        <textarea
+          id="decryptedText"
+          rows="4"
+          placeholder="解密後的明文"
+          readonly
+        ></textarea>
+      </div>
+    </div>
+
+    <script>
+      function encryptText() {
+        const key = document.getElementById('key').value;
+        const plaintext = document.getElementById('plaintext').value;
+        const ciphertextOutput = document.getElementById('ciphertext');
+
+        if (!key || key.length < 8) {
+          // 建議至少 16 字元以上金鑰
+          alert(
+            '金鑰必須至少 8 個字元! 為了更高的安全性，建議使用 16 個字元以上的金鑰。'
+          );
+          return;
+        }
+        if (!plaintext) {
+          alert('請輸入要加密的明文!');
+          return;
+        }
+
+        try {
+          // 使用 CryptoJS 的 AES 加密
+          const ciphertext = CryptoJS.AES.encrypt(plaintext, key).toString();
+          ciphertextOutput.value = ciphertext;
+          document.getElementById('decryptedText').value = ''; // 清空解密結果
+        } catch (error) {
+          alert('加密過程中發生錯誤: ' + error);
+          ciphertextOutput.value = '加密錯誤';
+          console.error('加密錯誤:', error);
+        }
+      }
+
+      function decryptText() {
+        const key = document.getElementById('key').value;
+        const ciphertextInput = document.getElementById('ciphertext').value;
+        const decryptedTextOutput = document.getElementById('decryptedText');
+
+        if (!key || key.length < 8) {
+          // 建議至少 16 字元以上金鑰
+          alert(
+            '金鑰必須至少 8 個字元! 為了更高的安全性，建議使用 16 個字元以上的金鑰。'
+          );
+          return;
+        }
+        if (!ciphertextInput) {
+          alert('請輸入要解密的密文!');
+          return;
+        }
+
+        try {
+          // 使用 CryptoJS 的 AES 解密
+          const decrypted = CryptoJS.AES.decrypt(ciphertextInput, key).toString(
+            CryptoJS.enc.Utf8
+          );
+          decryptedTextOutput.value = decrypted;
+          document.getElementById('ciphertext').value = ciphertextInput; // 保留密文
+        } catch (error) {
+          alert('解密過程中發生錯誤: ' + error);
+          decryptedTextOutput.value = '解密錯誤';
+          console.error('解密錯誤:', error);
+        }
+      }
+    </script>
+  </body>
+</html>
